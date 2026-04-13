@@ -1,0 +1,23 @@
+{
+  "name": "brain-stack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"pnpm --filter brain-stack-server dev\" \"pnpm --filter client dev\"",
+    "server": "pnpm --filter brain-stack-server dev",
+    "client": "pnpm --filter client dev",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "uuid": "^13.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
+  }
+}

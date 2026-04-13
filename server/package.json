@@ -1,0 +1,9 @@
+{
+  "name": "brain-stack-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts"
+  }
+}

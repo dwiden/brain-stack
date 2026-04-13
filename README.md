@@ -14,7 +14,7 @@ pnpm dev
 ```
 
 - **Frontend**: http://localhost:5173
-- **API**: http://localhost:3001
+- **API**: http://localhost:3000
 
 ## How It Works
 
@@ -35,7 +35,7 @@ pnpm dev
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Start both server and client |
-| `pnpm server` | Start API server only (port 3001) |
+| `pnpm server` | Start API server only (port 3000) |
 | `pnpm client` | Start frontend only (port 5173) |
 
 ## Project Structure

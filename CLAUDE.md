@@ -5,8 +5,8 @@ A personal priority queue for organizing thoughts and tasks, with automatic prio
 ## Architecture
 
 - **Monorepo** managed with pnpm workspaces (`client/` and `server/`)
-- **Frontend** (`client/`): React + TypeScript + Vite on port 5173
-- **Backend** (`server/`): Express + TypeScript on port 3000
+- **Frontend** (`client/`): React + TypeScript + Vite on port 3000
+- **Backend** (`server/`): Express + TypeScript on port 3001
 - **Database**: SQLite via better-sqlite3, stored as `brain-stack.db` at project root (gitignored, created on first run)
 
 ## Running

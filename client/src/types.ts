@@ -1,4 +1,4 @@
-export interface Subtask {
+export type Subtask = {
   id: string;
   item_id: string;
   title: string;
@@ -6,7 +6,7 @@ export interface Subtask {
   sort_order: number;
 }
 
-export interface StackItem {
+export type StackItem = {
   id: string;
   title: string;
   description: string;

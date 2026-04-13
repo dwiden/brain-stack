@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import db from './database';
 
 const app = express();
-const PORT = 3000;
+const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -234,5 +234,5 @@ app.get('/api/items/stale', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Brain Stack API running on http://localhost:${PORT}`);
+  console.log(`Brain Stack API running on http://localhost:${PORT}/api`);
 });

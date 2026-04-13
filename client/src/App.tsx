@@ -6,7 +6,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { StackItem } from './types';
+import type { StackItem } from './types';
 import { api } from './api';
 import { StackItemCard } from './components/StackItemCard';
 import { AddItemForm } from './components/AddItemForm';

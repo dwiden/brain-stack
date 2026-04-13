@@ -77,7 +77,7 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
     <div ref={setNodeRef} style={style} className="stack-item">
       <div className="stack-item-header">
         <div className="drag-handle" {...attributes} {...listeners}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
             <circle cx="5" cy="3" r="1.5" />
             <circle cx="11" cy="3" r="1.5" />
             <circle cx="5" cy="8" r="1.5" />

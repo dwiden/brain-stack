@@ -39,3 +39,4 @@ pnpm dev
 - Dark theme only
 - No auth layer needed
 - SQLite is the only dependency — no external services
+- All new code must go on a feature branch (not directly on `main`), then submitted via PR

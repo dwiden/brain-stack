@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { StackItem } from '../types';
+import type { StackItem } from '../types';
 import { api } from '../api';
 
 interface Props {

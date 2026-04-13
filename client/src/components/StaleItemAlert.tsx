@@ -1,4 +1,4 @@
-import { StackItem } from '../types';
+import type { StackItem } from '../types';
 import { api } from '../api';
 
 interface Props {

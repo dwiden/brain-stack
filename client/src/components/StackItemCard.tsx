@@ -20,9 +20,6 @@ export function StackItemCard({ item, onRefresh }: Props) {
   const [editingSubtaskText, setEditingSubtaskText] = useState('');
   const subtaskInputRef = useRef<HTMLInputElement>(null);
 
-  const [editingPriority, setEditingPriority] = useState(false);
-  const [priorityValue, setPriorityValue] = useState(String(item.priority));
-
   const {
     attributes,
     listeners,
@@ -59,22 +56,12 @@ export function StackItemCard({ item, onRefresh }: Props) {
     setEditingDescription(false);
   };
 
-  const handlePrioritySave = async () => {
-    const p = parseInt(priorityValue, 10);
-    if (!isNaN(p) && p >= 0) {
-      await api.updateItem(item.id, { priority: p });
-      onRefresh();
-    }
-    setEditingPriority(false);
-  };
-
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubtask.trim()) return;
     const result = await api.addSubtask(item.id, newSubtask.trim());
     setNewSubtask('');
     onRefresh();
-    // Auto-focus the newly added subtask for editing
     setEditingSubtaskId(result.id);
     setEditingSubtaskText(newSubtask.trim());
   };
@@ -109,9 +96,6 @@ export function StackItemCard({ item, onRefresh }: Props) {
     }
   };
 
-  const priorityColor = item.priority >= 8 ? '#ef4444' : item.priority >= 5 ? '#f97316' : item.priority >= 3 ? '#eab308' : '#6b7280';
-
-  // Focus the subtask edit input when editingSubtaskId changes
   useEffect(() => {
     if (editingSubtaskId && subtaskInputRef.current) {
       subtaskInputRef.current.focus();
@@ -132,36 +116,6 @@ export function StackItemCard({ item, onRefresh }: Props) {
             <circle cx="11" cy="13" r="1.5" />
           </svg>
         </div>
-
-        {editingPriority ? (
-          <input
-            className="priority-input"
-            type="number"
-            min="0"
-            value={priorityValue}
-            onChange={e => setPriorityValue(e.target.value)}
-            onBlur={handlePrioritySave}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handlePrioritySave();
-              if (e.key === 'Escape') setEditingPriority(false);
-            }}
-            onClick={e => e.stopPropagation()}
-            autoFocus
-          />
-        ) : (
-          <span
-            className="priority-badge"
-            style={{ backgroundColor: priorityColor }}
-            onClick={e => {
-              e.stopPropagation();
-              setPriorityValue(String(item.priority));
-              setEditingPriority(true);
-            }}
-            title="Click to set priority"
-          >
-            P{item.priority}
-          </span>
-        )}
 
         <div className="stack-item-title-area" onClick={() => !editingTitle && setExpanded(!expanded)}>
           {editingTitle ? (
@@ -194,10 +148,8 @@ export function StackItemCard({ item, onRefresh }: Props) {
           {totalSubtasks > 0 && (
             <span className="subtask-count">{completedCount}/{totalSubtasks}</span>
           )}
-          {item.daysSinceTouched > 0 && (
-            <span className="decay-badge" title={`Priority decaying: -${item.daysSinceTouched} from inactivity`}>
-              {item.daysSinceTouched > 3 ? '\u26A0' : '\u2193'}{item.daysSinceTouched}d
-            </span>
+          {item.daysOnStack >= 7 && (
+            <span className="stale-badge" title="On stack for 7+ days">Stale</span>
           )}
           <span className="days-badge" title="Days on stack">
             {item.daysOnStack}d
@@ -208,7 +160,7 @@ export function StackItemCard({ item, onRefresh }: Props) {
       {expanded && (
         <div className="stack-item-body">
           <div className="item-actions-top">
-            <button onClick={handleArchive} className="btn btn-archive btn-small">Archive</button>
+            <button onClick={handleArchive} className="btn btn-archive btn-small">Complete</button>
             <button onClick={handleDelete} className="btn btn-danger btn-small">Delete</button>
           </div>
 

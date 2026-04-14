@@ -258,6 +258,34 @@ body {
   border-color: #3a3e4a;
 }
 
+/* High Priority group container */
+.high-priority-group {
+  position: relative;
+  background: rgba(239, 68, 68, 0.08);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  border-radius: 14px;
+  padding: 24px 10px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.high-priority-label {
+  position: absolute;
+  top: -1px;
+  left: 16px;
+  transform: translateY(-50%);
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 12px;
+  border-radius: 8px;
+}
+
 .stack-item-header {
   display: flex;
   align-items: center;
@@ -289,40 +317,6 @@ body {
   cursor: grabbing;
 }
 
-.priority-badge {
-  font-size: 12px;
-  font-weight: 700;
-  color: white;
-  padding: 4px 9px;
-  border-radius: 6px;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.priority-badge:hover {
-  opacity: 0.8;
-}
-
-.priority-input {
-  width: 48px;
-  padding: 2px 6px;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  background: var(--bg);
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  color: var(--text-bright);
-  outline: none;
-  flex-shrink: 0;
-}
-
-.priority-input::-webkit-inner-spin-button,
-.priority-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
 
 .stack-item-title-area {
   flex: 1;
@@ -354,12 +348,13 @@ body {
   border-radius: 10px;
 }
 
-.decay-badge {
-  font-size: 12px;
+.stale-badge {
+  font-size: 11px;
   color: var(--orange);
   background: rgba(249, 115, 22, 0.1);
   padding: 3px 10px;
   border-radius: 10px;
+  font-weight: 600;
 }
 
 .days-badge {
@@ -469,12 +464,12 @@ body {
 .subtask-label input[type="checkbox"]:checked::after {
   content: '';
   position: absolute;
-  left: 5px;
+  left: 4px;
   top: 1px;
-  width: 5px;
-  height: 10px;
+  width: 4px;
+  height: 8px;
   border: solid white;
-  border-width: 0 2px 2px 0;
+  border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
 }
 

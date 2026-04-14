@@ -91,7 +91,7 @@ function App() {
             className={`nav-tab ${view === 'archive' ? 'active' : ''}`}
             onClick={() => setView('archive')}
           >
-            Archive ({archivedItems.length})
+            Completed ({archivedItems.length})
           </button>
         </nav>
       </header>
@@ -112,13 +112,34 @@ function App() {
               >
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div className="stack-list">
-                    {items.map((item) => (
-                      <StackItemCard
-                        key={item.id}
-                        item={item}
-                        onRefresh={refresh}
-                      />
-                    ))}
+                    {items.length > 3 && (
+                      <div className="high-priority-group">
+                        <span className="high-priority-label">High Priority</span>
+                        {items.slice(0, 3).map((item) => (
+                          <StackItemCard
+                            key={item.id}
+                            item={item}
+                            onRefresh={refresh}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {items.length <= 3
+                      ? items.map((item) => (
+                          <StackItemCard
+                            key={item.id}
+                            item={item}
+                            onRefresh={refresh}
+                          />
+                        ))
+                      : items.slice(3).map((item) => (
+                          <StackItemCard
+                            key={item.id}
+                            item={item}
+                            onRefresh={refresh}
+                          />
+                        ))
+                    }
                   </div>
                 </SortableContext>
               </DndContext>

@@ -20,7 +20,7 @@ export function ArchiveView({ items, onRefresh }: Props) {
   };
 
   if (items.length === 0) {
-    return <p className="empty-state">No archived items</p>;
+    return <p className="empty-state">No completed items</p>;
   }
 
   return (
@@ -31,7 +31,7 @@ export function ArchiveView({ items, onRefresh }: Props) {
             <strong>{item.title}</strong>
             {item.description && <p>{item.description}</p>}
             <span className="archive-date">
-              Archived {item.archived_at ? new Date(item.archived_at).toLocaleDateString() : ''}
+              Completed {item.archived_at ? new Date(item.archived_at + 'Z').toLocaleString() : ''}
             </span>
           </div>
           <div className="archive-item-actions">

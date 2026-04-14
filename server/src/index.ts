@@ -12,15 +12,11 @@ app.use(express.json());
 // ---------- Helpers ----------
 
 function getItemsWithSubtasks(archived = false) {
-  // effective_priority = stored priority - days since last touched
-  // This makes neglected items sink down the stack over time
+  // Pinned items (decay_enabled=0) sort first, then by stored priority
   const items = db.prepare(`
-    SELECT *,
-      MAX(0, priority - CAST(julianday('now') - julianday(last_touched_at) AS INTEGER)) as effective_priority,
-      CAST(julianday('now') - julianday(last_touched_at) AS INTEGER) as days_since_touched
-    FROM items
+    SELECT * FROM items
     WHERE archived = ?
-    ORDER BY effective_priority DESC, priority DESC, created_at DESC
+    ORDER BY decay_enabled ASC, priority DESC, created_at DESC
   `).all(archived ? 1 : 0) as any[];
 
   const getSubtasks = db.prepare(`
@@ -30,22 +26,21 @@ function getItemsWithSubtasks(archived = false) {
   const todayDate = new Date().toISOString().split('T')[0];
 
   return items.map(item => {
-    const createdDate = item.created_at.split(' ')[0]; // "YYYY-MM-DD"
-    const calendarDaysOnStack = Math.max(0, Math.floor(
+    const createdDate = item.created_at.split(' ')[0];
+    const daysOnStack = Math.max(0, Math.floor(
       (new Date(todayDate).getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
     ));
 
     return {
-    ...item,
-    archived: !!item.archived,
-    effectivePriority: item.effective_priority,
-    daysSinceTouched: item.days_since_touched,
-    daysOnStack: calendarDaysOnStack,
-    subtasks: getSubtasks.all(item.id).map((s: any) => ({
-      ...s,
-      completed: !!s.completed,
-    })),
-  };
+      ...item,
+      archived: !!item.archived,
+      decay_enabled: !!item.decay_enabled,
+      daysOnStack,
+      subtasks: getSubtasks.all(item.id).map((s: any) => ({
+        ...s,
+        completed: !!s.completed,
+      })),
+    };
   });
 }
 
@@ -63,7 +58,7 @@ app.get('/api/items/archived', (_req, res) => {
 
 // Create item
 app.post('/api/items', (req, res) => {
-  const { title, description = '', subtasks = [] } = req.body;
+  const { title, description = '', subtasks = [], decay_enabled = true } = req.body;
 
   // New items get priority = max + 1 (top of stack)
   const maxPriority = db.prepare(
@@ -74,9 +69,9 @@ app.post('/api/items', (req, res) => {
   const priority = maxPriority.max + 1;
 
   db.prepare(`
-    INSERT INTO items (id, title, description, priority)
-    VALUES (?, ?, ?, ?)
-  `).run(id, title, description, priority);
+    INSERT INTO items (id, title, description, priority, decay_enabled)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, title, description, priority, decay_enabled ? 1 : 0);
 
   for (let i = 0; i < subtasks.length; i++) {
     db.prepare(`
@@ -92,7 +87,7 @@ app.post('/api/items', (req, res) => {
 // Update item
 app.patch('/api/items/:id', (req, res) => {
   const { id } = req.params;
-  const { title, description, priority } = req.body;
+  const { title, description, priority, decay_enabled } = req.body;
 
   const sets: string[] = [];
   const values: any[] = [];
@@ -100,6 +95,7 @@ app.patch('/api/items/:id', (req, res) => {
   if (title !== undefined) { sets.push('title = ?'); values.push(title); }
   if (description !== undefined) { sets.push('description = ?'); values.push(description); }
   if (priority !== undefined) { sets.push('priority = ?'); values.push(priority); }
+  if (decay_enabled !== undefined) { sets.push('decay_enabled = ?'); values.push(decay_enabled ? 1 : 0); }
 
   // Touching the item resets the decay clock
   sets.push("last_touched_at = datetime('now')");
@@ -129,10 +125,10 @@ app.put('/api/items/reorder', (req, res) => {
   res.json(getItemsWithSubtasks(false));
 });
 
-// Touch item (reset decay timer - user says "still important")
+// Touch item (reset stale timer - user says "still important")
 app.post('/api/items/:id/touch', (req, res) => {
   const { id } = req.params;
-  db.prepare("UPDATE items SET last_touched_at = datetime('now') WHERE id = ?").run(id);
+  db.prepare("UPDATE items SET created_at = datetime('now'), last_touched_at = datetime('now') WHERE id = ?").run(id);
   const items = getItemsWithSubtasks(false);
   res.json(items.find(item => item.id === id));
 });
@@ -215,33 +211,31 @@ app.delete('/api/subtasks/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// ---------- Decay check ----------
-// Returns items that haven't been touched in N days and have low priority
+// ---------- Stale check ----------
+// Returns items on the stack for 7+ calendar days (skips pinned items)
 app.get('/api/items/stale', (_req, res) => {
   const STALE_DAYS = 7;
   const staleItems = db.prepare(`
     SELECT * FROM items
     WHERE archived = 0
-      AND julianday('now') - julianday(last_touched_at) >= ?
+      AND decay_enabled = 1
+      AND CAST(julianday(date('now')) - julianday(date(created_at)) AS INTEGER) >= ?
     ORDER BY priority ASC
   `).all(STALE_DAYS) as any[];
 
   const getSubtasks = db.prepare('SELECT * FROM subtasks WHERE item_id = ? ORDER BY sort_order ASC');
-
-  const staleToday = new Date().toISOString().split('T')[0];
+  const todayDate = new Date().toISOString().split('T')[0];
 
   const result = staleItems.map(item => {
     const createdDate = item.created_at.split(' ')[0];
-    const touchedDate = item.last_touched_at.split(' ')[0];
+    const daysOnStack = Math.max(0, Math.floor(
+      (new Date(todayDate).getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
+    ));
     return {
       ...item,
       archived: !!item.archived,
-      daysSinceTouched: Math.max(0, Math.floor(
-        (new Date(staleToday).getTime() - new Date(touchedDate).getTime()) / (1000 * 60 * 60 * 24)
-      )),
-      daysOnStack: Math.max(0, Math.floor(
-        (new Date(staleToday).getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
-      )),
+      decay_enabled: !!item.decay_enabled,
+      daysOnStack,
       subtasks: getSubtasks.all(item.id).map((s: any) => ({
         ...s,
         completed: !!s.completed,

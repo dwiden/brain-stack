@@ -61,9 +61,9 @@ export function StackItemCard({ item, onRefresh }: Props) {
     if (!newSubtask.trim()) return;
     const result = await api.addSubtask(item.id, newSubtask.trim());
     setNewSubtask('');
-    onRefresh();
     setEditingSubtaskId(result.id);
     setEditingSubtaskText(newSubtask.trim());
+    onRefresh();
   };
 
   const handleSubtaskSave = async (id: string) => {

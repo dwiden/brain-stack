@@ -26,9 +26,9 @@ function getItemsWithSubtasks(archived = false) {
   const todayDate = new Date().toISOString().split('T')[0];
 
   return items.map(item => {
-    const createdDate = item.created_at.split(' ')[0];
+    const staleBase = (item.stale_reset_at || item.created_at).split(' ')[0];
     const daysOnStack = Math.max(0, Math.floor(
-      (new Date(todayDate).getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
+      (new Date(todayDate).getTime() - new Date(staleBase).getTime()) / (1000 * 60 * 60 * 24)
     ));
 
     return {
@@ -128,7 +128,7 @@ app.put('/api/items/reorder', (req, res) => {
 // Touch item (reset stale timer - user says "still important")
 app.post('/api/items/:id/touch', (req, res) => {
   const { id } = req.params;
-  db.prepare("UPDATE items SET created_at = datetime('now'), last_touched_at = datetime('now') WHERE id = ?").run(id);
+  db.prepare("UPDATE items SET stale_reset_at = datetime('now'), last_touched_at = datetime('now') WHERE id = ?").run(id);
   const items = getItemsWithSubtasks(false);
   res.json(items.find(item => item.id === id));
 });
@@ -219,7 +219,7 @@ app.get('/api/items/stale', (_req, res) => {
     SELECT * FROM items
     WHERE archived = 0
       AND decay_enabled = 1
-      AND CAST(julianday(date('now')) - julianday(date(created_at)) AS INTEGER) >= ?
+      AND CAST(julianday(date('now')) - julianday(date(COALESCE(stale_reset_at, created_at))) AS INTEGER) >= ?
     ORDER BY priority ASC
   `).all(STALE_DAYS) as any[];
 
@@ -227,9 +227,9 @@ app.get('/api/items/stale', (_req, res) => {
   const todayDate = new Date().toISOString().split('T')[0];
 
   const result = staleItems.map(item => {
-    const createdDate = item.created_at.split(' ')[0];
+    const staleBase = (item.stale_reset_at || item.created_at).split(' ')[0];
     const daysOnStack = Math.max(0, Math.floor(
-      (new Date(todayDate).getTime() - new Date(createdDate).getTime()) / (1000 * 60 * 60 * 24)
+      (new Date(todayDate).getTime() - new Date(staleBase).getTime()) / (1000 * 60 * 60 * 24)
     ));
     return {
       ...item,

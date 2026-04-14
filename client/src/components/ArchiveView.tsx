@@ -31,7 +31,7 @@ export function ArchiveView({ items, onRefresh }: Props) {
             <strong>{item.title}</strong>
             {item.description && <p>{item.description}</p>}
             <span className="archive-date">
-              Completed {item.archived_at ? new Date(item.archived_at + 'Z').toLocaleString() : ''}
+              Completed {item.archived_at ? new Date(item.archived_at.replace(' ', 'T') + 'Z').toLocaleString() : ''}
             </span>
           </div>
           <div className="archive-item-actions">

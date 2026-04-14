@@ -24,7 +24,7 @@ export function StaleItemAlert({ items, onRefresh, onDismiss }: Props) {
     <div className="stale-alert-overlay">
       <div className="stale-alert">
         <h3>Stale items detected</h3>
-        <p>These items haven't been touched in a while. Still important?</p>
+        <p>These items have been on the stack for 7+ days. Still important?</p>
 
         <div className="stale-items-list">
           {items.map(item => (
@@ -32,7 +32,7 @@ export function StaleItemAlert({ items, onRefresh, onDismiss }: Props) {
               <div className="stale-item-info">
                 <strong>{item.title}</strong>
                 <span className="stale-days">
-                  {item.daysSinceTouched} days untouched
+                  {item.daysOnStack} days on stack
                 </span>
               </div>
               <div className="stale-item-actions">
@@ -40,7 +40,7 @@ export function StaleItemAlert({ items, onRefresh, onDismiss }: Props) {
                   Keep it
                 </button>
                 <button onClick={() => handleArchive(item.id)} className="btn btn-archive btn-small">
-                  Archive
+                  Complete
                 </button>
               </div>
             </div>

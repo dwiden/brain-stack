@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { StackItem } from '../types';
@@ -6,16 +6,19 @@ import { api } from '../api';
 
 interface Props {
   item: StackItem;
-  index: number;
   onRefresh: () => void;
 }
 
-export function StackItemCard({ item, index, onRefresh }: Props) {
+export function StackItemCard({ item, onRefresh }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description);
   const [newSubtask, setNewSubtask] = useState('');
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskText, setEditingSubtaskText] = useState('');
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
 
   const {
     attributes,
@@ -35,18 +38,40 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
   const completedCount = item.subtasks.filter(s => s.completed).length;
   const totalSubtasks = item.subtasks.length;
 
-  const handleSave = async () => {
-    await api.updateItem(item.id, { title, description });
-    setEditing(false);
-    onRefresh();
+  const handleTitleSave = async () => {
+    if (title.trim() && title !== item.title) {
+      await api.updateItem(item.id, { title: title.trim() });
+      onRefresh();
+    } else {
+      setTitle(item.title);
+    }
+    setEditingTitle(false);
+  };
+
+  const handleDescriptionSave = async () => {
+    if (description !== item.description) {
+      await api.updateItem(item.id, { description });
+      onRefresh();
+    }
+    setEditingDescription(false);
   };
 
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubtask.trim()) return;
-    await api.addSubtask(item.id, newSubtask.trim());
+    const result = await api.addSubtask(item.id, newSubtask.trim());
     setNewSubtask('');
+    setEditingSubtaskId(result.id);
+    setEditingSubtaskText(newSubtask.trim());
     onRefresh();
+  };
+
+  const handleSubtaskSave = async (id: string) => {
+    if (editingSubtaskText.trim()) {
+      await api.updateSubtask(id, editingSubtaskText.trim());
+      onRefresh();
+    }
+    setEditingSubtaskId(null);
   };
 
   const handleToggleSubtask = async (id: string, completed: boolean) => {
@@ -71,7 +96,12 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
     }
   };
 
-  const priorityColor = index === 0 ? '#ef4444' : index === 1 ? '#f97316' : index === 2 ? '#eab308' : '#6b7280';
+  useEffect(() => {
+    if (editingSubtaskId && subtaskInputRef.current) {
+      subtaskInputRef.current.focus();
+      subtaskInputRef.current.select();
+    }
+  }, [editingSubtaskId]);
 
   return (
     <div ref={setNodeRef} style={style} className="stack-item">
@@ -87,21 +117,30 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
           </svg>
         </div>
 
-        <span className="priority-badge" style={{ backgroundColor: priorityColor }}>
-          #{index + 1}
-        </span>
-
-        <div className="stack-item-title-area" onClick={() => setExpanded(!expanded)}>
-          {editing ? (
+        <div className="stack-item-title-area" onClick={() => !editingTitle && setExpanded(!expanded)}>
+          {editingTitle ? (
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleTitleSave();
+                if (e.key === 'Escape') { setTitle(item.title); setEditingTitle(false); }
+              }}
               onClick={e => e.stopPropagation()}
               className="edit-input"
               autoFocus
             />
           ) : (
-            <span className="stack-item-title">{item.title}</span>
+            <span
+              className="stack-item-title"
+              onDoubleClick={e => {
+                e.stopPropagation();
+                setEditingTitle(true);
+              }}
+            >
+              {item.title}
+            </span>
           )}
         </div>
 
@@ -109,10 +148,8 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
           {totalSubtasks > 0 && (
             <span className="subtask-count">{completedCount}/{totalSubtasks}</span>
           )}
-          {item.daysSinceTouched > 0 && (
-            <span className="decay-badge" title={`Priority decaying: -${item.daysSinceTouched} from inactivity`}>
-              {item.daysSinceTouched > 3 ? '\u26A0' : '\u2193'}{item.daysSinceTouched}d
-            </span>
+          {item.daysOnStack >= 7 && (
+            <span className="stale-badge" title="On stack for 7+ days">Stale</span>
           )}
           <span className="days-badge" title="Days on stack">
             {item.daysOnStack}d
@@ -122,7 +159,12 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
 
       {expanded && (
         <div className="stack-item-body">
-          {editing ? (
+          <div className="item-actions-top">
+            <button onClick={handleArchive} className="btn btn-archive btn-small">Complete</button>
+            <button onClick={handleDelete} className="btn btn-danger btn-small">Delete</button>
+          </div>
+
+          {editingDescription ? (
             <div className="edit-section">
               <textarea
                 value={description}
@@ -130,21 +172,21 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
                 placeholder="Description..."
                 className="edit-textarea"
                 rows={3}
+                autoFocus
+                onBlur={handleDescriptionSave}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') { setDescription(item.description); setEditingDescription(false); }
+                }}
               />
-              <div className="edit-actions">
-                <button onClick={handleSave} className="btn btn-save">Save</button>
-                <button onClick={() => setEditing(false)} className="btn btn-cancel">Cancel</button>
-              </div>
             </div>
           ) : (
-            <>
-              {item.description && (
-                <p className="stack-item-description">{item.description}</p>
-              )}
-              {!item.description && (
-                <p className="stack-item-description empty">No description</p>
-              )}
-            </>
+            <p
+              className={`stack-item-description ${!item.description ? 'empty' : ''}`}
+              onClick={() => setEditingDescription(true)}
+              title="Click to edit description"
+            >
+              {item.description || 'Click to add description...'}
+            </p>
           )}
 
           <div className="subtasks-section">
@@ -157,7 +199,30 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
                     checked={subtask.completed}
                     onChange={() => handleToggleSubtask(subtask.id, subtask.completed)}
                   />
-                  <span className={subtask.completed ? 'completed' : ''}>{subtask.title}</span>
+                  {editingSubtaskId === subtask.id ? (
+                    <input
+                      ref={subtaskInputRef}
+                      className="subtask-edit-input"
+                      value={editingSubtaskText}
+                      onChange={e => setEditingSubtaskText(e.target.value)}
+                      onBlur={() => handleSubtaskSave(subtask.id)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSubtaskSave(subtask.id);
+                        if (e.key === 'Escape') setEditingSubtaskId(null);
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className={subtask.completed ? 'completed' : ''}
+                      onDoubleClick={() => {
+                        setEditingSubtaskId(subtask.id);
+                        setEditingSubtaskText(subtask.title);
+                      }}
+                      title="Double-click to edit"
+                    >
+                      {subtask.title}
+                    </span>
+                  )}
                 </label>
                 <button
                   onClick={() => handleDeleteSubtask(subtask.id)}
@@ -177,14 +242,6 @@ export function StackItemCard({ item, index, onRefresh }: Props) {
               />
               <button type="submit" className="btn btn-small">+</button>
             </form>
-          </div>
-
-          <div className="item-actions">
-            {!editing && (
-              <button onClick={() => setEditing(true)} className="btn btn-edit">Edit</button>
-            )}
-            <button onClick={handleArchive} className="btn btn-archive">Archive</button>
-            <button onClick={handleDelete} className="btn btn-danger">Delete</button>
           </div>
         </div>
       )}

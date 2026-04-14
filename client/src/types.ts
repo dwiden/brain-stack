@@ -15,8 +15,7 @@ export type StackItem = {
   last_touched_at: string;
   archived: boolean;
   archived_at: string | null;
+  decay_enabled: boolean;
   daysOnStack: number;
-  daysSinceTouched: number;
-  effectivePriority: number;
   subtasks: Subtask[];
 }

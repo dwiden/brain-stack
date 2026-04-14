@@ -11,7 +11,6 @@ export function AddItemForm({ onCreated }: Props) {
   const [description, setDescription] = useState('');
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [newSubtask, setNewSubtask] = useState('');
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;

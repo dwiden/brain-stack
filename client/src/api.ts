@@ -30,6 +30,8 @@ export const api = {
     request<any>(`/items/${itemId}/subtasks`, { method: 'POST', body: JSON.stringify({ title }) }),
   toggleSubtask: (id: string, completed: boolean) =>
     request<any>(`/subtasks/${id}`, { method: 'PATCH', body: JSON.stringify({ completed }) }),
+  updateSubtask: (id: string, title: string) =>
+    request<any>(`/subtasks/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
   deleteSubtask: (id: string) =>
     request<any>(`/subtasks/${id}`, { method: 'DELETE' }),
 };

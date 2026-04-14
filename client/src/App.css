@@ -275,6 +275,9 @@ body {
   padding: 6px 4px;
   border-radius: 4px;
   flex-shrink: 0;
+  touch-action: none;
+  position: relative;
+  z-index: 1;
 }
 
 .drag-handle:hover {
@@ -293,6 +296,32 @@ body {
   padding: 4px 9px;
   border-radius: 6px;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.priority-badge:hover {
+  opacity: 0.8;
+}
+
+.priority-input {
+  width: 48px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text-bright);
+  outline: none;
+  flex-shrink: 0;
+}
+
+.priority-input::-webkit-inner-spin-button,
+.priority-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .stack-item-title-area {
@@ -362,6 +391,18 @@ body {
   font-style: italic;
 }
 
+.stack-item-description {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-left: -6px;
+  transition: background 0.15s;
+}
+
+.stack-item-description:hover {
+  background: var(--surface-hover);
+}
+
 .edit-section {
   display: flex;
   flex-direction: column;
@@ -403,7 +444,38 @@ body {
 }
 
 .subtask-label input[type="checkbox"] {
-  accent-color: var(--accent);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.subtask-label input[type="checkbox"]:hover {
+  border-color: var(--accent);
+}
+
+.subtask-label input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.subtask-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .subtask-label .completed {
@@ -430,11 +502,22 @@ body {
   flex: 1;
 }
 
-.item-actions {
+.item-actions-top {
   display: flex;
   gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.subtask-edit-input {
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: var(--text-bright);
+  font-size: 14px;
+  font-family: inherit;
+  flex: 1;
+  outline: none;
 }
 
 /* Empty state */

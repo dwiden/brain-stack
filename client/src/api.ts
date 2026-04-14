@@ -14,7 +14,7 @@ export const api = {
   getStaleItems: () => request<any[]>('/items/stale'),
   createItem: (data: { title: string; description?: string; subtasks?: { title: string }[] }) =>
     request<any>('/items', { method: 'POST', body: JSON.stringify(data) }),
-  updateItem: (id: string, data: { title?: string; description?: string }) =>
+  updateItem: (id: string, data: { title?: string; description?: string; priority?: number }) =>
     request<any>(`/items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   reorderItems: (orderedIds: string[]) =>
     request<any[]>('/items/reorder', { method: 'PUT', body: JSON.stringify({ orderedIds }) }),
@@ -30,6 +30,8 @@ export const api = {
     request<any>(`/items/${itemId}/subtasks`, { method: 'POST', body: JSON.stringify({ title }) }),
   toggleSubtask: (id: string, completed: boolean) =>
     request<any>(`/subtasks/${id}`, { method: 'PATCH', body: JSON.stringify({ completed }) }),
+  updateSubtask: (id: string, title: string) =>
+    request<any>(`/subtasks/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
   deleteSubtask: (id: string) =>
     request<any>(`/subtasks/${id}`, { method: 'DELETE' }),
 };

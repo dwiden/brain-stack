@@ -112,11 +112,10 @@ function App() {
               >
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div className="stack-list">
-                    {items.map((item, index) => (
+                    {items.map((item) => (
                       <StackItemCard
                         key={item.id}
                         item={item}
-                        index={index}
                         onRefresh={refresh}
                       />
                     ))}

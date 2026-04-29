@@ -11,17 +11,22 @@ app.use(express.json());
 
 // ---------- Helpers ----------
 
-function getItemsWithSubtasks(archived = false) {
-  // Pinned items (decay_enabled=0) sort first, then by stored priority
-  const items = db.prepare(`
-    SELECT * FROM items
-    WHERE archived = ?
-    ORDER BY decay_enabled ASC, priority DESC, created_at DESC
-  `).all(archived ? 1 : 0) as any[];
+function getItemsWithSubtasks(archived = false, stackId?: string) {
+  let query = `SELECT * FROM items WHERE archived = ?`;
+  const params: any[] = [archived ? 1 : 0];
 
-  const getSubtasks = db.prepare(`
-    SELECT * FROM subtasks WHERE item_id = ? ORDER BY sort_order ASC
-  `);
+  if (stackId) {
+    query += ` AND stack_id = ?`;
+    params.push(stackId);
+  }
+
+  query += ` ORDER BY decay_enabled ASC, priority DESC, created_at DESC`;
+
+  const items = db.prepare(query).all(...params) as any[];
+
+  const getSubtasks = db.prepare(
+    `SELECT * FROM subtasks WHERE item_id = ? ORDER BY sort_order ASC`
+  );
 
   const todayDate = new Date().toISOString().split('T')[0];
 
@@ -44,23 +49,69 @@ function getItemsWithSubtasks(archived = false) {
   });
 }
 
-// ---------- Routes ----------
+// ---------- Stack Routes ----------
 
-// Get all active items
-app.get('/api/items', (_req, res) => {
-  res.json(getItemsWithSubtasks(false));
+const STACK_COLORS = [
+  '#6366f1', // indigo
+  '#22c55e', // green
+  '#f97316', // orange
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#eab308', // yellow
+  '#8b5cf6', // violet
+  '#14b8a6', // teal
+];
+
+app.get('/api/stacks', (_req, res) => {
+  const stacks = db.prepare('SELECT * FROM stacks ORDER BY sort_order ASC, created_at ASC').all();
+  res.json(stacks);
 });
 
-// Get archived items
-app.get('/api/items/archived', (_req, res) => {
-  res.json(getItemsWithSubtasks(true));
+app.post('/api/stacks', (req, res) => {
+  const { name } = req.body;
+  const id = uuidv4();
+  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as max FROM stacks').get() as any;
+  const usedColors = (db.prepare('SELECT color FROM stacks').all() as any[]).map(r => r.color);
+  const available = STACK_COLORS.filter(c => !usedColors.includes(c));
+  const pool = available.length > 0 ? available : STACK_COLORS;
+  const color = pool[Math.floor(Math.random() * pool.length)];
+  db.prepare('INSERT INTO stacks (id, name, color, sort_order) VALUES (?, ?, ?, ?)').run(id, name, color, maxOrder.max + 1);
+  const stack = db.prepare('SELECT * FROM stacks WHERE id = ?').get(id);
+  res.status(201).json(stack);
+});
+
+app.patch('/api/stacks/:id', (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  db.prepare('UPDATE stacks SET name = ? WHERE id = ?').run(name, id);
+  const stack = db.prepare('SELECT * FROM stacks WHERE id = ?').get(id);
+  res.json(stack);
+});
+
+app.delete('/api/stacks/:id', (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM stacks WHERE id = ?').run(id);
+  res.json({ success: true });
+});
+
+// ---------- Item Routes ----------
+
+// Get active items (optional ?stack_id= filter)
+app.get('/api/items', (req, res) => {
+  const stackId = req.query.stack_id as string | undefined;
+  res.json(getItemsWithSubtasks(false, stackId));
+});
+
+// Get archived items (optional ?stack_id= filter)
+app.get('/api/items/archived', (req, res) => {
+  const stackId = req.query.stack_id as string | undefined;
+  res.json(getItemsWithSubtasks(true, stackId));
 });
 
 // Create item
 app.post('/api/items', (req, res) => {
-  const { title, description = '', subtasks = [], decay_enabled = true } = req.body;
+  const { title, description = '', subtasks = [], decay_enabled = true, stack_id = null } = req.body;
 
-  // New items get priority = max + 1 (top of stack)
   const maxPriority = db.prepare(
     'SELECT COALESCE(MAX(priority), 0) as max FROM items WHERE archived = 0'
   ).get() as any;
@@ -69,9 +120,9 @@ app.post('/api/items', (req, res) => {
   const priority = maxPriority.max + 1;
 
   db.prepare(`
-    INSERT INTO items (id, title, description, priority, decay_enabled)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(id, title, description, priority, decay_enabled ? 1 : 0);
+    INSERT INTO items (id, title, description, priority, decay_enabled, stack_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, title, description, priority, decay_enabled ? 1 : 0, stack_id);
 
   for (let i = 0; i < subtasks.length; i++) {
     db.prepare(`
@@ -87,7 +138,7 @@ app.post('/api/items', (req, res) => {
 // Update item
 app.patch('/api/items/:id', (req, res) => {
   const { id } = req.params;
-  const { title, description, priority, decay_enabled } = req.body;
+  const { title, description, priority, decay_enabled, stack_id } = req.body;
 
   const sets: string[] = [];
   const values: any[] = [];
@@ -96,8 +147,8 @@ app.patch('/api/items/:id', (req, res) => {
   if (description !== undefined) { sets.push('description = ?'); values.push(description); }
   if (priority !== undefined) { sets.push('priority = ?'); values.push(priority); }
   if (decay_enabled !== undefined) { sets.push('decay_enabled = ?'); values.push(decay_enabled ? 1 : 0); }
+  if (stack_id !== undefined) { sets.push('stack_id = ?'); values.push(stack_id); }
 
-  // Touching the item resets the decay clock
   sets.push("last_touched_at = datetime('now')");
 
   if (sets.length > 0) {
@@ -115,7 +166,6 @@ app.put('/api/items/reorder', (req, res) => {
 
   const update = db.prepare('UPDATE items SET priority = ?, last_touched_at = datetime(\'now\') WHERE id = ?');
   const transaction = db.transaction(() => {
-    // Highest priority = length, going down
     for (let i = 0; i < orderedIds.length; i++) {
       update.run(orderedIds.length - i, orderedIds[i]);
     }
@@ -125,7 +175,7 @@ app.put('/api/items/reorder', (req, res) => {
   res.json(getItemsWithSubtasks(false));
 });
 
-// Touch item (reset stale timer - user says "still important")
+// Touch item (reset stale timer)
 app.post('/api/items/:id/touch', (req, res) => {
   const { id } = req.params;
   db.prepare("UPDATE items SET stale_reset_at = datetime('now'), last_touched_at = datetime('now') WHERE id = ?").run(id);
@@ -160,7 +210,6 @@ app.delete('/api/items/:id', (req, res) => {
 
 // ---------- Subtasks ----------
 
-// Add subtask
 app.post('/api/items/:itemId/subtasks', (req, res) => {
   const { itemId } = req.params;
   const { title } = req.body;
@@ -173,13 +222,11 @@ app.post('/api/items/:itemId/subtasks', (req, res) => {
   db.prepare('INSERT INTO subtasks (id, item_id, title, sort_order) VALUES (?, ?, ?, ?)')
     .run(id, itemId, title, maxOrder.max + 1);
 
-  // Touch parent item
   db.prepare("UPDATE items SET last_touched_at = datetime('now') WHERE id = ?").run(itemId);
 
   res.status(201).json({ id, item_id: itemId, title, completed: false, sort_order: maxOrder.max + 1 });
 });
 
-// Update subtask (toggle completed and/or edit title)
 app.patch('/api/subtasks/:id', (req, res) => {
   const { id } = req.params;
   const { completed, title } = req.body;
@@ -191,7 +238,6 @@ app.patch('/api/subtasks/:id', (req, res) => {
     db.prepare('UPDATE subtasks SET title = ? WHERE id = ?').run(title, id);
   }
 
-  // Touch parent item
   const subtask = db.prepare('SELECT item_id FROM subtasks WHERE id = ?').get(id) as any;
   if (subtask) {
     db.prepare("UPDATE items SET last_touched_at = datetime('now') WHERE id = ?").run(subtask.item_id);
@@ -200,7 +246,6 @@ app.patch('/api/subtasks/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Delete subtask
 app.delete('/api/subtasks/:id', (req, res) => {
   const { id } = req.params;
   const subtask = db.prepare('SELECT item_id FROM subtasks WHERE id = ?').get(id) as any;
@@ -212,17 +257,27 @@ app.delete('/api/subtasks/:id', (req, res) => {
 });
 
 // ---------- Stale check ----------
-// Returns items on the stack for 7+ calendar days (skips pinned items)
-app.get('/api/items/stale', (_req, res) => {
+
+app.get('/api/items/stale', (req, res) => {
   const STALE_DAYS = 7;
-  const staleItems = db.prepare(`
+  const stackId = req.query.stack_id as string | undefined;
+
+  let query = `
     SELECT * FROM items
     WHERE archived = 0
       AND decay_enabled = 1
       AND CAST(julianday(date('now')) - julianday(date(COALESCE(stale_reset_at, created_at))) AS INTEGER) >= ?
-    ORDER BY priority ASC
-  `).all(STALE_DAYS) as any[];
+  `;
+  const params: any[] = [STALE_DAYS];
 
+  if (stackId) {
+    query += ` AND stack_id = ?`;
+    params.push(stackId);
+  }
+
+  query += ` ORDER BY priority ASC`;
+
+  const staleItems = db.prepare(query).all(...params) as any[];
   const getSubtasks = db.prepare('SELECT * FROM subtasks WHERE item_id = ? ORDER BY sort_order ASC');
   const todayDate = new Date().toISOString().split('T')[0];
 

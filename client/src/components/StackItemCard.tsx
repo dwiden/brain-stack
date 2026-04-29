@@ -7,9 +7,10 @@ import { api } from '../api';
 interface Props {
   item: StackItem;
   onRefresh: () => void;
+  stackColor?: string;
 }
 
-export function StackItemCard({ item, onRefresh }: Props) {
+export function StackItemCard({ item, onRefresh, stackColor }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
@@ -104,9 +105,9 @@ export function StackItemCard({ item, onRefresh }: Props) {
   }, [editingSubtaskId]);
 
   return (
-    <div ref={setNodeRef} style={style} className="stack-item">
-      <div className="stack-item-header">
-        <div className="drag-handle" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={{ ...style, borderLeftColor: stackColor || undefined, borderLeftWidth: stackColor ? '3px' : undefined }} className={`stack-item ${stackColor ? 'has-stack-color' : ''}`}>
+      <div className="stack-item-header" onClick={() => !editingTitle && setExpanded(!expanded)}>
+        <div className="drag-handle" {...attributes} {...listeners} onClick={e => e.stopPropagation()}>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
             <circle cx="5" cy="3" r="1.5" />
             <circle cx="11" cy="3" r="1.5" />
@@ -117,7 +118,21 @@ export function StackItemCard({ item, onRefresh }: Props) {
           </svg>
         </div>
 
-        <div className="stack-item-title-area" onClick={() => !editingTitle && setExpanded(!expanded)}>
+        <button
+          className={`priority-flag ${!item.decay_enabled ? 'active' : ''}`}
+          onClick={async (e) => {
+            e.stopPropagation();
+            await api.updateItem(item.id, { decay_enabled: !item.decay_enabled });
+            onRefresh();
+          }}
+          title={item.decay_enabled ? 'Mark as high priority' : 'Remove high priority'}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill={item.decay_enabled ? 'none' : 'currentColor'} stroke="currentColor" strokeWidth="1.5">
+            <path d="M3 1v14M3 1l10 4.5L3 10" />
+          </svg>
+        </button>
+
+        <div className="stack-item-title-area">
           {editingTitle ? (
             <input
               value={title}

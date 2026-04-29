@@ -3,9 +3,10 @@ import { api } from '../api';
 
 interface Props {
   onCreated: () => void;
+  stackId: string | null;
 }
 
-export function AddItemForm({ onCreated }: Props) {
+export function AddItemForm({ onCreated, stackId }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -19,6 +20,7 @@ export function AddItemForm({ onCreated }: Props) {
       title: title.trim(),
       description: description.trim(),
       subtasks: subtasks.filter(s => s.trim()).map(s => ({ title: s.trim() })),
+      stack_id: stackId,
     });
 
     setTitle('');

@@ -6,6 +6,14 @@ export type Subtask = {
   sort_order: number;
 }
 
+export type Stack = {
+  id: string;
+  name: string;
+  color: string;
+  sort_order: number;
+  created_at: string;
+}
+
 export type StackItem = {
   id: string;
   title: string;
@@ -17,5 +25,6 @@ export type StackItem = {
   archived_at: string | null;
   decay_enabled: boolean;
   daysOnStack: number;
+  stack_id: string | null;
   subtasks: Subtask[];
 }

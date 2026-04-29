@@ -153,6 +153,104 @@ body {
   color: var(--text);
 }
 
+/* Stack Selector */
+.stack-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding: 6px 0 4px;
+}
+
+.stack-tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.stack-tab:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.stack-tab.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.stack-tab-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.stack-tab-delete {
+  display: none;
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.stack-tab-wrapper:hover .stack-tab-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stack-color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.stack-tab-add {
+  border-style: dashed;
+  color: var(--text-dim);
+}
+
+.stack-tab-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.stack-tab-create {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.stack-name-input {
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--text-bright);
+  font-size: 13px;
+  outline: none;
+  width: 120px;
+}
+
 /* Add Item */
 .btn-add-item {
   width: 100%;
@@ -264,8 +362,8 @@ body {
   background: rgba(239, 68, 68, 0.08);
   border: 2px solid rgba(239, 68, 68, 0.4);
   border-radius: 14px;
-  padding: 24px 10px 12px;
-  margin-bottom: 12px;
+  padding: 24px 12px 12px;
+  margin: 0 -14px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -315,6 +413,28 @@ body {
 
 .drag-handle:active {
   cursor: grabbing;
+}
+
+.priority-flag {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.priority-flag:hover {
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.priority-flag.active {
+  color: var(--red);
 }
 
 
